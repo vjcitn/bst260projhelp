@@ -166,15 +166,7 @@ all_refs <- c(refs, curated)
 That's the full setup this package's bibliography tools need: parsed
 numbered references plus any hand-curated entries, combined into one
 named list keyed by citation key. From here on, only the final
-rendered bibliography is shown, not the construction code -- each
-entry links to its DOI on `doi.org` when Crossref's own parsed DOI was
-captured in the reference text, and is explicitly marked `no DOI`
-otherwise, including for the curated entries (surveillance systems and
-reporting forms), which were never going to have one:
-
-```{r, results = "asis"}
-cat(vancouver_bibliography_html(all_refs), sep = "\n")
-```
+rendered bibliography is shown, not the construction code.
 
 ### Cross-checking the numbered citations
 
@@ -182,15 +174,40 @@ cat(vancouver_bibliography_html(all_refs), sep = "\n")
 text matching the `"word (N)"` citation pattern, so the two entries in
 the reference list can be checked against where they're actually used
 -- a cheap guard against a reference that was added (or removed) from
-the list without updating the citation, or vice versa:
+the list without updating the citation, or vice versa. Each hit below
+is itself a link down to the entry it cites, and carries its own
+anchor id so that entry can link back up to this exact page:
 
 ```{r}
-vancouver_find_numeric_citations(pdf, max_ref = length(refs_raw))
+nc <- vancouver_find_numeric_citations(pdf, max_ref = length(refs_raw))
+num_to_key <- c(`1` = "Collier2021", `2` = "EPA2021PWS")
+nc_keys <- strsplit(nc$numbers, ",")
+cite_id <- Map(function(ks, i) paste0("cite-", num_to_key[ks], "-", i), nc_keys, seq_len(nrow(nc)))
+nc$reference <- vapply(seq_along(nc_keys), function(i) {
+  paste(bib_cite_link(num_to_key[nc_keys[[i]]], label = nc_keys[[i]], id = cite_id[[i]]), collapse = ", ")
+}, "")
+cited_at <- split(unlist(cite_id), unlist(lapply(nc_keys, function(ks) num_to_key[ks])))
+dtab(nc[c("page", "cited", "reference")], escape = FALSE)
 ```
 
 Both numbered citations -- one on page 1, one on page 17 -- are
 accounted for in the two-entry reference list, which is the
 bibliographic-integrity claim this section set out to check.
+
+### The rendered bibliography
+
+Each entry links to its DOI on `doi.org` when Crossref's own parsed
+DOI was captured in the reference text; failing that, to its plain
+`url` when one is known (true of every curated entry, cited by its web
+page rather than a DOI); and is explicitly marked `no DOI` in either
+case when no DOI was found. The small `&uarr;` after `Collier2021` and
+`EPA2021PWS` links back up to the page that cited them, found above --
+the curated entries have no such link, since they're named in the
+report's prose rather than cited by number:
+
+```{r, results = "asis"}
+cat(vancouver_bibliography_html(all_refs, cited_at), sep = "\n")
+```
 
 ### A caution about URLs
 

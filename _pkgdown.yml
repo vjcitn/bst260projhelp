@@ -47,6 +47,7 @@ reference:
   - bib_escape
   - bib_entry
   - bib_html_list
+  - bib_cite_link
   - write_bib
 
 - title: "Bibliography: RAND-style (per-chapter, author-year)"

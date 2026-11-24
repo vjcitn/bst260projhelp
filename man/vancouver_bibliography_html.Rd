@@ -4,11 +4,15 @@
 \alias{vancouver_bibliography_html}
 \title{Render a list of Vancouver-style (plus curated) entries as a rendered bibliography}
 \usage{
-vancouver_bibliography_html(refs)
+vancouver_bibliography_html(refs, cited_at = NULL)
 }
 \arguments{
 \item{refs}{A named list of entries, as passed to
 \code{\link[=vancouver_to_bibtex]{vancouver_to_bibtex()}}.}
+
+\item{cited_at}{A named list, keys matching (a subset of)
+\code{names(refs)}, each value a character vector of anchor ids --
+typically from \code{\link[=bib_cite_link]{bib_cite_link()}} -- to backlink to. Optional.}
 }
 \value{
 A character vector of HTML lines (an \verb{<ol>}).
@@ -16,7 +20,10 @@ A character vector of HTML lines (an \verb{<ol>}).
 \description{
 Formats each entry as author/title plus its container (journal, with
 volume/issue/pages, or institution, or a descriptive note) and year,
-then renders the list with a live DOI link where \code{doi} is known and
-an explicit "no DOI" marker otherwise -- including for entries, such
-as cited systems and datasets, that were never going to have one.
+then renders the list with a live DOI link where \code{doi} is known;
+failing that, its plain \code{url} when one is known (true of most of the
+curated entries -- surveillance systems and reporting forms cited by
+their web page, not a DOI); and an explicit "no DOI" marker in either
+case when no DOI was found, including for entries that were never
+going to have one.
 }

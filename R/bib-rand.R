@@ -431,15 +431,22 @@ rand_resolve_dois <- function(refs, mailto, cache = "doi_cache.rds") {
 #'
 #' Each entry is shown as its raw reference-list text, with a live link
 #' to its DOI (field `doi`, e.g. as filled in by [rand_resolve_dois()])
-#' when one is known, and an explicit "no DOI" marker otherwise.
+#' when one is known; failing that, its plain `url` (as parsed by
+#' [rand_parse_entry()] from the reference text itself) when one is
+#' known; and an explicit "no DOI" marker in either case when no DOI
+#' was found.
 #'
 #' @param refs A list of parsed entries (see [rand_parse_entry()]), such
 #'   as a subset of [rand_parse_chapter_refs()] output.
+#' @param cited_at A named list, keys matching (a subset of) the
+#'   entries' citation keys, each value a character vector of anchor
+#'   ids -- typically from [bib_cite_link()] -- to backlink to. Optional.
 #' @return A character vector of HTML lines (an `<ol>`).
 #' @export
-rand_bibliography_html <- function(refs) {
+rand_bibliography_html <- function(refs, cited_at = NULL) {
   keys <- vapply(refs, `[[`, "", "key")
   text <- .rand_html_escape(vapply(refs, `[[`, "", "raw"))
   doi <- vapply(refs, function(r) if (is.null(r$doi) || is.na(r$doi)) NA_character_ else r$doi, NA_character_)
-  bib_html_list(keys, text, doi)
+  url <- vapply(refs, function(r) if (is.null(r$url) || is.na(r$url)) NA_character_ else r$url, NA_character_)
+  bib_html_list(keys, text, doi, url, cited_at)
 }

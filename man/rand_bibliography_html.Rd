@@ -4,11 +4,15 @@
 \alias{rand_bibliography_html}
 \title{Render a list of parsed RAND entries as a rendered bibliography}
 \usage{
-rand_bibliography_html(refs)
+rand_bibliography_html(refs, cited_at = NULL)
 }
 \arguments{
 \item{refs}{A list of parsed entries (see \code{\link[=rand_parse_entry]{rand_parse_entry()}}), such
 as a subset of \code{\link[=rand_parse_chapter_refs]{rand_parse_chapter_refs()}} output.}
+
+\item{cited_at}{A named list, keys matching (a subset of) the
+entries' citation keys, each value a character vector of anchor
+ids -- typically from \code{\link[=bib_cite_link]{bib_cite_link()}} -- to backlink to. Optional.}
 }
 \value{
 A character vector of HTML lines (an \verb{<ol>}).
@@ -16,5 +20,8 @@ A character vector of HTML lines (an \verb{<ol>}).
 \description{
 Each entry is shown as its raw reference-list text, with a live link
 to its DOI (field \code{doi}, e.g. as filled in by \code{\link[=rand_resolve_dois]{rand_resolve_dois()}})
-when one is known, and an explicit "no DOI" marker otherwise.
+when one is known; failing that, its plain \code{url} (as parsed by
+\code{\link[=rand_parse_entry]{rand_parse_entry()}} from the reference text itself) when one is
+known; and an explicit "no DOI" marker in either case when no DOI
+was found.
 }

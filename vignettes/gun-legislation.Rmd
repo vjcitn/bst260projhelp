@@ -136,14 +136,22 @@ Now link Table 18.1's `study` column to this reference table:
 ```{r}
 t181_linked <- rand_link_citations(t181, "study", refs_df)
 stopifnot(!anyNA(t181_linked$bib_key))
-dtab(t181_linked[c("study", "significant_effect", "bib_key")])
+
+# one anchor id per row, so each study links down to its bibliography
+# entry and that entry can link back up to this exact row
+cite_id <- paste0("cite-", t181_linked$bib_key, "-", seq_len(nrow(t181_linked)))
+disp <- t181_linked[c("study", "significant_effect", "bib_key")]
+disp$study <- bib_cite_link(t181_linked$bib_key, label = t181_linked$study, id = cite_id)
+dtab(disp, escape = FALSE)
 ```
 
 Every one of the 22 studies in Table 18.1 resolves to exactly one
 chapter-18 reference-list entry -- the `stopifnot()` above is the
 integrity check: if some future edit to the report, or some mistake in
 the transcription, broke that correspondence, this line would fail
-instead of silently producing a table with dangling citations.
+instead of silently producing a table with dangling citations. Each
+`study` cell above is itself a link down to that entry in the rendered
+bibliography below.
 
 That setup -- parse the chapter's reference list, link a table's
 citations against it, and check the link is complete -- is the pattern
@@ -158,15 +166,19 @@ final rendered bibliography is displayed.
 cited <- refs[vapply(refs, function(r) r$key %in% t181_linked$bib_key, NA)]
 dois <- readRDS(system.file("extdata", "gunpolicy_ch18_dois.rds", package = "bst260projhelp"))
 cited <- lapply(cited, function(r) { r$doi <- dois[[r$key]]; r })
+cited_at <- split(cite_id, t181_linked$bib_key)
 ```
 
 ### The rendered bibliography
 
 Each entry below links to its DOI on `doi.org` when one was found via
-Crossref, and is explicitly marked `no DOI` otherwise -- a reader
-should never have to guess whether a missing link means "none exists"
-or "nobody checked":
+Crossref, or to a plain URL (parsed straight from the reference text)
+when no DOI was found but a URL was still given; either way, an entry
+with no DOI is explicitly marked `no DOI` -- a reader should never
+have to guess whether a missing link means "none exists" or "nobody
+checked". The small `&uarr;` after each entry links back up to the
+Table 18.1 row that cited it:
 
 ```{r, results = "asis"}
-cat(rand_bibliography_html(cited), sep = "\n")
+cat(rand_bibliography_html(cited, cited_at), sep = "\n")
 ```

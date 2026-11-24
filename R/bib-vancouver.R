@@ -159,15 +159,21 @@ vancouver_find_numeric_citations <- function(pdf_file, max_ref) {
 #'
 #' Formats each entry as author/title plus its container (journal, with
 #' volume/issue/pages, or institution, or a descriptive note) and year,
-#' then renders the list with a live DOI link where `doi` is known and
-#' an explicit "no DOI" marker otherwise -- including for entries, such
-#' as cited systems and datasets, that were never going to have one.
+#' then renders the list with a live DOI link where `doi` is known;
+#' failing that, its plain `url` when one is known (true of most of the
+#' curated entries -- surveillance systems and reporting forms cited by
+#' their web page, not a DOI); and an explicit "no DOI" marker in either
+#' case when no DOI was found, including for entries that were never
+#' going to have one.
 #'
 #' @param refs A named list of entries, as passed to
 #'   [vancouver_to_bibtex()].
+#' @param cited_at A named list, keys matching (a subset of)
+#'   `names(refs)`, each value a character vector of anchor ids --
+#'   typically from [bib_cite_link()] -- to backlink to. Optional.
 #' @return A character vector of HTML lines (an `<ol>`).
 #' @export
-vancouver_bibliography_html <- function(refs) {
+vancouver_bibliography_html <- function(refs, cited_at = NULL) {
   fmt <- function(r) {
     author <- if (!is.null(r$author) && !is.na(r$author)) paste0(gsub("\\{|\\}", "", r$author), ". ") else ""
     title <- paste0(gsub("\\{|\\}", "", r$title), ". ")
@@ -184,7 +190,8 @@ vancouver_bibliography_html <- function(refs) {
   }
   text <- .vancouver_html_escape(vapply(refs, fmt, ""))
   doi <- vapply(refs, function(r) if (is.null(r$doi) || is.na(r$doi)) NA_character_ else r$doi, NA_character_)
-  bib_html_list(names(refs), text, doi)
+  url <- vapply(refs, function(r) if (is.null(r$url) || is.na(r$url)) NA_character_ else r$url, NA_character_)
+  bib_html_list(names(refs), text, doi, url, cited_at)
 }
 
 #' Check that cited URLs are still live
