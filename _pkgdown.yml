@@ -1,0 +1,81 @@
+url: https://vjcitn.github.io/bst260projhelp/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+articles:
+- title: Articles
+  navbar: ~
+  contents:
+  - gun-legislation
+  - waterborne-disease
+
+reference:
+- title: Example data
+  contents:
+  - bst260_example
+
+- title: "Table extraction: word-geometry engine"
+  desc: >
+    For tables where pdftools::pdf_text() loses column structure
+    (wrapped cells, centred headers, rotated pages).
+  contents:
+  - pdf_page_words
+  - pdf_add_lines
+  - pdf_line_text
+  - pdf_table_index
+  - pdf_read_table
+  - pdf_suggest_edges
+  - pdf_strip_footnote_letter
+
+- title: "Table extraction: simple layouts"
+  desc: Line-based readers for tables that don't need word geometry.
+  contents:
+  - pdf_caption_index
+  - pdf_page_lines
+  - pdf_parse_count_pct_row
+  - pdf_read_count_pct_table
+  - pdf_read_wide_wrapped_table
+
+- title: "Bibliography: shared helpers"
+  contents:
+  - bib_escape
+  - bib_entry
+  - bib_html_list
+  - write_bib
+
+- title: "Bibliography: RAND-style (per-chapter, author-year)"
+  contents:
+  - rand_chapter_ref_pages
+  - rand_chapter_ref_lines
+  - rand_split_entries
+  - rand_parse_names
+  - rand_split_title
+  - rand_parse_entry
+  - rand_ref_key
+  - rand_parse_chapter_refs
+  - rand_refs_table
+  - rand_cite_keys
+  - rand_resolve_citations
+  - rand_link_citations
+  - rand_to_bibtex
+  - rand_to_csl_json
+  - rand_crossref_doi
+  - rand_resolve_dois
+  - rand_bibliography_html
+
+- title: "Bibliography: Vancouver-style (numbered)"
+  contents:
+  - vancouver_ref_entries
+  - vancouver_authors
+  - vancouver_parse_article
+  - vancouver_parse_web
+  - vancouver_to_bibtex
+  - vancouver_bibliography_html
+  - vancouver_find_numeric_citations
+  - vancouver_check_urls

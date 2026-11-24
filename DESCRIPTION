@@ -1,0 +1,31 @@
+Package: bst260projhelp
+Title: Extract Tables and Verify Bibliographic Integrity from PDF Reports
+Version: 0.1.0
+Authors@R: person("Vincent", "Carey", email = "stvjc@channing.harvard.edu", role = c("aut", "cre"))
+Description: Tools for two recurring tasks when working with long PDF reports
+    (such as government and NGO surveillance summaries): (1) recovering
+    tabular data from PDF pages via either simple line-based parsing or
+    coordinate-based word clustering, and (2) recovering a document's
+    bibliography -- parsing its reference list, linking in-text citations
+    to reference-list entries, and exporting the result as BibTeX or
+    CSL-JSON for downstream citation-integrity checks. Includes worked
+    examples on a RAND report on gun policy research and a CDC waterborne
+    disease surveillance report.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends: R (>= 4.1)
+Imports:
+    pdftools,
+    jsonlite
+Suggests:
+    DT,
+    httr2,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+URL: https://github.com/vjcitn/bst260projhelp
+BugReports: https://github.com/vjcitn/bst260projhelp/issues
+Config/roxygen2/version: 8.1.1

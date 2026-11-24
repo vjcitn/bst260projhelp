@@ -1,0 +1,207 @@
+---
+title: "Waterborne disease: tables and bibliographic integrity in a CDC surveillance report"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Waterborne disease: tables and bibliographic integrity in a CDC surveillance report}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(bst260projhelp)
+```
+
+```{r, include = FALSE}
+have_dt <- requireNamespace("DT", quietly = TRUE)
+dtab <- function(d, ...) if (have_dt) DT::datatable(d, ...) else d
+```
+
+This vignette works through the CDC's *2021 Annual Waterborne Disease
+Surveillance Report* (the WBDOSS summary), bundled with the package:
+
+```{r}
+pdf <- bst260_example("2021_Annual_Waterborne_Disease_Surveillance_Report.pdf")
+pdftools::pdf_info(pdf)[c("pages", "created", "version")]
+```
+
+As the original `data-raw/waterborne/README.txt` for this project put
+it: the underlying question is whether results pulled from this single
+annual report are consistent with the longer 1971-2023 WBDOSS resource
+studied elsewhere in the course, which makes getting the extraction
+*right* -- not just plausible-looking -- the point of this vignette.
+
+## Information transformation: two kinds of PDF table
+
+Where does each table start?
+
+```{r}
+pdf_caption_index(pdf)
+```
+
+### Tables with no wrapped cells: a simple line-by-line read
+
+Tables 1 and 3 are short enough, and typeset simply enough, that each
+row is a single text line: a label followed by one or more
+`count (percent)` pairs, ending in a "Total" row.
+`pdf_read_count_pct_table()` reads this layout directly off
+`pdftools::pdf_text()`, with no need for word coordinates:
+
+```{r}
+tab1 <- pdf_read_count_pct_table(
+  pdf, page = 3, header_pat = "^\\s*(Water\\s+)?Exposure",
+  col_names = c("outbreaks", "cases", "hosp", "deaths")
+)
+tab1
+
+tab3 <- pdf_read_count_pct_table(
+  pdf, page = 6, header_pat = "^Setting\\s+N",
+  col_names = c("outbreaks", "cases")
+)
+tab3
+```
+
+The report prints its own totals, so we can check the extraction
+against them directly -- the kind of check worth automating as a
+`stopifnot()` rather than eyeballing once and trusting forever:
+
+```{r}
+stopifnot(
+  sum(tab3$outbreaks_n[tab3$label != "Total"]) == 52,
+  sum(tab3$cases_n[tab3$label != "Total"]) == 511
+)
+```
+
+### Tables with wrapped cells: word-geometry extraction
+
+Table 8 (treated recreational water outbreaks, pages 11-12) is harder:
+columns are centred rather than left-aligned, and cells like etiology or
+jurisdiction can wrap across several lines, so a line-by-line read would
+scramble rows. `pdf_read_wide_wrapped_table()` instead assigns every
+word to its nearest column-header centre and then to the row (anchored
+on the first column) that it vertically belongs to:
+
+```{r}
+h <- function(prefix, k = 1) c(prefix, k)
+cols8 <- list(
+  Jurisdiction = list(h("Jurisdiction")),
+  Month        = list(h("Month")),
+  Status       = list(h("Status")),
+  Etiology     = list(h("Etiology", 2)),       # "Etiology" appears twice in the header
+  Cases        = list(h("Cases")),
+  Hosp         = list(h("Hospitalizati")),      # poppler splits "Hospitalizations"
+  Deaths       = list(h("Deaths")),
+  Venue        = list(h("Water", 1), h("Venue(s)")),
+  Setting      = list(h("Water", 2), h("Setting"))
+)
+tab8 <- do.call(rbind, lapply(11:12, function(p) pdf_read_wide_wrapped_table(pdf, p, cols8)))
+tab8[c("Cases", "Hosp", "Deaths")] <- lapply(tab8[c("Cases", "Hosp", "Deaths")], as.integer)
+tab8$Setting <- sub("/(Neig|Mun|Cond|U) ", "/\\1", tab8$Setting)  # repair a poppler line-split
+nrow(tab8)  # expect 22
+dtab(tab8)
+```
+
+Both extraction strategies are generic: neither function hard-codes
+anything about waterborne disease, so the same calls work on the gun
+policy report's tables -- see `vignette("gun-legislation")` -- by
+supplying that document's own page numbers and column layout.
+
+## Bibliographic integrity: a numbered (Vancouver-style) reference list
+
+Unlike the RAND report, this document cites by number -- `"(1)"`,
+`"(2)"` -- against a short, two-entry reference list on page 25:
+
+```{r}
+refs_raw <- vancouver_ref_entries(pdf, page = 25)
+refs_raw
+```
+
+Each entry has its own shape (a journal article vs. a web resource), so
+each is parsed with the matching function:
+
+```{r}
+refs <- list(
+  Collier2021 = vancouver_parse_article(refs_raw[["1"]], 1),
+  EPA2021PWS  = vancouver_parse_web(refs_raw[["2"]], 2)
+)
+str(refs, max.level = 1)
+```
+
+Most of the report's real evidentiary sources, though, are surveillance
+*systems* (NORS, the NORS Dashboard, reporting forms) named in the
+Methods and Conclusions sections rather than cited by number. Treating
+these as if they weren't sources at all would understate what the
+report actually depends on, so they are curated by hand as `@misc`
+entries (their URLs taken from the PDF's own hyperlink annotations) and
+combined with the parsed numbered references and the report's own
+"Suggested Citation" for itself:
+
+```{r}
+cdc <- "{Centers for Disease Control and Prevention}"
+curated <- list(
+  Lawinger2023WBDOSS = list(
+    type = "techreport",
+    author = "Lawinger, H. and Hlavsa, M. and Miko, S. and Kunz, J. and Thuneibat, M. and Gerdes, M. and Gleason, M. and Roberts, V.",
+    title = "Waterborne Disease and Outbreak Surveillance System ({WBDOSS}) Summary Report, {United States}, 2021",
+    institution = "U.S. Department of Health and Human Services, CDC", address = "Atlanta, Georgia", year = "2023",
+    annote = "Citation text from the report's own 'Suggested Citation' (p. 26)."
+  ),
+  CDCNORS = list(
+    type = "misc", author = cdc, title = "National Outbreak Reporting System ({NORS})",
+    url = "https://www.cdc.gov/nors/index.html",
+    note = "Web-based platform used by jurisdictions to report outbreaks since 2009"
+  ),
+  CDCNORSDashboard = list(
+    type = "misc", author = cdc, title = "{NORS} Dashboard",
+    url = "https://www.cdc.gov/nors/data/dashboard/index.html",
+    note = "2021 data in the report: outbreaks reported through NORS as of 19 January 2023; later pulls may differ"
+  )
+)
+all_refs <- c(refs, curated)
+```
+
+That's the full setup this package's bibliography tools need: parsed
+numbered references plus any hand-curated entries, combined into one
+named list keyed by citation key. From here on, only the final
+rendered bibliography is shown, not the construction code -- each
+entry links to its DOI on `doi.org` when Crossref's own parsed DOI was
+captured in the reference text, and is explicitly marked `no DOI`
+otherwise, including for the curated entries (surveillance systems and
+reporting forms), which were never going to have one:
+
+```{r, results = "asis"}
+cat(vancouver_bibliography_html(all_refs), sep = "\n")
+```
+
+### Cross-checking the numbered citations
+
+`vancouver_find_numeric_citations()` scans the whole document for
+text matching the `"word (N)"` citation pattern, so the two entries in
+the reference list can be checked against where they're actually used
+-- a cheap guard against a reference that was added (or removed) from
+the list without updating the citation, or vice versa:
+
+```{r}
+vancouver_find_numeric_citations(pdf, max_ref = length(refs_raw))
+```
+
+Both numbered citations -- one on page 1, one on page 17 -- are
+accounted for in the two-entry reference list, which is the
+bibliographic-integrity claim this section set out to check.
+
+### A caution about URLs
+
+The curated `@misc` entries above point at live CDC web resources
+rather than fixed, versioned documents, and CDC has reorganized its
+site before. `vancouver_check_urls()` (not run here, since it requires
+network access) sends a `HEAD` request to every URL in a reference list
+and reports the HTTP status, as a first-pass check that a citation
+still resolves to *something* -- not proof that the content hasn't
+changed underneath it:
+
+```{r, eval = FALSE}
+vancouver_check_urls(all_refs)
+```

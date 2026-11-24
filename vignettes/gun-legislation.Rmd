@@ -1,0 +1,172 @@
+---
+title: "Gun legislation: tables and bibliographic integrity in a RAND report"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Gun legislation: tables and bibliographic integrity in a RAND report}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(bst260projhelp)
+```
+
+```{r, include = FALSE}
+have_dt <- requireNamespace("DT", quietly = TRUE)
+dtab <- function(d, ...) if (have_dt) DT::datatable(d, ...) else d
+```
+
+This vignette works through RAND's *The Science of Gun Policy* (4th ed.,
+2024), a 512-page report bundled with the package:
+
+```{r}
+pdf <- bst260_example("scienceOfGunPolicy.pdf")
+```
+
+It demonstrates the two kinds of information transformation this package
+supports on reports like this one -- pulling structured tables out of a
+PDF that was never designed to be machine-read, and recovering enough of
+the document's bibliographic structure to check that an in-text claim
+traces back to a real, identifiable source.
+
+## Information transformation: recovering tables from PDF geometry
+
+`pdftools::pdf_text()` returns each page as a block of plain text, which
+is enough for prose but loses column structure whenever cells wrap or
+headers are centred rather than left-aligned -- both common in this
+report. `pdf_read_table()` instead works from word-level coordinates
+(`pdftools::pdf_data()`), grouping words first into text lines and then
+into columns.
+
+Before parsing an unfamiliar table, find out which page its caption is
+on:
+
+```{r}
+idx <- pdf_table_index(pdf)
+head(idx)
+subset(idx, table %in% c("18.1", "A.3", "A.6"))
+```
+
+### A simple two-column table: 18.1
+
+Table 18.1 lists concealed-carry studies and whether they found a
+significant effect. Its columns are left-aligned, so we give
+`pdf_read_table()` column edges (relative to the table's own left
+margin) rather than centres:
+
+```{r}
+t181 <- pdf_read_table(
+  pdf, "18.1", page = 397, header_first = "^Study$",
+  edges = c(0, 121), stop_pat = "^(NOTE|SOURCE|a|b)$",
+  col_names = c("study", "significant_effect")
+)
+t181$study <- pdf_strip_footnote_letter(t181$study)
+dtab(t181)
+```
+
+### A numeric table with a confidence interval: A.3
+
+Table A.3 reports incidence-rate ratios with 95% CIs as a single text
+column (`"1.12 [1.03-1.21]"`); once extracted, ordinary regex parsing
+pulls out the numbers:
+
+```{r}
+a3 <- pdf_read_table(
+  pdf, "A.3", page = 492, header_first = "^Study$",
+  edges = c(0, 131, 228, 322),
+  col_names = c("study", "policy", "outcome", "irr_ci")
+)
+m <- regmatches(a3$irr_ci, regexec("^([0-9.]+) \\[([0-9.]+)[\u2013-]([0-9.]+)\\]$", a3$irr_ci))
+a3[c("irr", "ci_lo", "ci_hi")] <- lapply(2:4, function(i) as.numeric(vapply(m, function(z) z[i], "")))
+a3$ci_excludes_1 <- a3$ci_lo > 1 | a3$ci_hi < 1
+stopifnot(nrow(a3) == 18, !anyNA(a3$irr))
+dtab(a3)
+```
+
+### A table where records aren't separated by whitespace: A.6
+
+Table A.6 compares 2022-vs-2024 conclusions by policy; its first column
+wraps across lines with no blank line between records, so a new record
+must instead be recognized by a column that's always filled -- here,
+"No. of Studies" (column 2):
+
+```{r}
+a6 <- pdf_read_table(
+  pdf, "A.6", page = 501, header_first = "^Policy$", header_span = c(2, 0),
+  edges = c(0, 113, 136, 252, 276), record = "anchor", anchor_col = 2,
+  col_names = c("policy", "n_2022", "conclusion_2022", "n_2024", "conclusion_2024")
+)
+a6$n_2022 <- as.integer(a6$n_2022)
+a6$n_2024 <- as.integer(a6$n_2024)
+dtab(a6)
+```
+
+If you need to extract a table this package hasn't already seen,
+`pdf_suggest_edges()` measures candidate column left-edges directly from
+the page -- shared x-coordinates across several lines are usually column
+boundaries:
+
+```{r}
+pdf_suggest_edges(pdf, "A.6", page = 501)
+```
+
+## Bibliographic integrity: linking citations to a RAND-style reference list
+
+This report has no single master bibliography: each chapter closes with
+its own `"Chapter N References"` list, in RAND's own citation style
+(not author-year), while in-text citations in tables and prose *are*
+author-year (e.g. `"Lott and Mustard (1997)"`). Checking bibliographic
+integrity here means parsing the chapter's reference list into
+structured entries, deriving an author-year key for each one, and
+confirming every in-text citation resolves to exactly one entry.
+
+```{r}
+refs <- rand_parse_chapter_refs(pdf, chapter = 18, chapter_title = "Concealed-Carry Laws")
+length(refs)
+refs_df <- rand_refs_table(refs)
+head(refs_df[c("key", "type", "title", "container")])
+```
+
+Now link Table 18.1's `study` column to this reference table:
+
+```{r}
+t181_linked <- rand_link_citations(t181, "study", refs_df)
+stopifnot(!anyNA(t181_linked$bib_key))
+dtab(t181_linked[c("study", "significant_effect", "bib_key")])
+```
+
+Every one of the 22 studies in Table 18.1 resolves to exactly one
+chapter-18 reference-list entry -- the `stopifnot()` above is the
+integrity check: if some future edit to the report, or some mistake in
+the transcription, broke that correspondence, this line would fail
+instead of silently producing a table with dangling citations.
+
+That setup -- parse the chapter's reference list, link a table's
+citations against it, and check the link is complete -- is the pattern
+the rest of this package's bibliography tools build on. The remaining
+steps (restricting to the studies actually cited by Table 18.1, and
+attaching a DOI, looked up via [rand_crossref_doi()] against Crossref
+and cached in the package so the vignette doesn't need network access
+to build) are mechanical, so they're run but not shown here; only the
+final rendered bibliography is displayed.
+
+```{r, echo = FALSE}
+cited <- refs[vapply(refs, function(r) r$key %in% t181_linked$bib_key, NA)]
+dois <- readRDS(system.file("extdata", "gunpolicy_ch18_dois.rds", package = "bst260projhelp"))
+cited <- lapply(cited, function(r) { r$doi <- dois[[r$key]]; r })
+```
+
+### The rendered bibliography
+
+Each entry below links to its DOI on `doi.org` when one was found via
+Crossref, and is explicitly marked `no DOI` otherwise -- a reader
+should never have to guess whether a missing link means "none exists"
+or "nobody checked":
+
+```{r, results = "asis"}
+cat(rand_bibliography_html(cited), sep = "\n")
+```
