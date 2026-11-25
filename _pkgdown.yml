@@ -14,6 +14,7 @@ articles:
   contents:
   - gun-legislation
   - waterborne-disease
+  - html-scraping
 
 reference:
 - title: Example data
@@ -41,6 +42,18 @@ reference:
   - pdf_parse_count_pct_row
   - pdf_read_count_pct_table
   - pdf_read_wide_wrapped_table
+
+- title: "HTML scraping: PMC article pages"
+  desc: >
+    Generalized rvest-based extraction from PMC-style HTML articles:
+    citation_* meta tags, TabN/FigN elements, and AbsN subsections.
+  contents:
+  - html_article_meta
+  - html_table_index
+  - html_read_table
+  - html_figure_caption
+  - html_figure_image
+  - html_abstract
 
 - title: "Bibliography: shared helpers"
   contents:
@@ -80,3 +93,9 @@ reference:
   - vancouver_bibliography_html
   - vancouver_find_numeric_citations
   - vancouver_check_urls
+
+- title: "Bibliography: PMC-style (numbered, pre-structured)"
+  contents:
+  - pmc_ref_entries
+  - pmc_find_citations
+  - pmc_bibliography_html

@@ -1,0 +1,186 @@
+---
+title: "Stroke mortality: scraping tables and citations from a PMC HTML article"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Stroke mortality: scraping tables and citations from a PMC HTML article}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(bst260projhelp)
+```
+
+```{r, include = FALSE}
+have_dt <- requireNamespace("DT", quietly = TRUE)
+dtab <- function(d, ...) if (have_dt) DT::datatable(d, ...) else d
+```
+
+The other two vignettes work from PDF reports. This one works from a
+journal article published only as HTML -- a PMC page bundled with the
+package -- and shows a third kind of information transformation:
+`rvest`-based scraping instead of `pdftools`-based extraction.
+
+```{r}
+article <- bst260_example("PMC13794488.html")
+```
+
+## Information transformation: scraping structure out of PMC's HTML
+
+PMC renders every article against the same handful of conventions:
+standard `citation_*` meta tags in the `<head>` (the Highwire
+Press/Google Scholar scheme most publishing platforms emit), and
+predictable element ids in the body (`TabN` for tables, `FigN` for
+figures, `AbsN` for the abstract, `CRN` for reference-list entries).
+None of the functions below are specific to this one paper -- they
+read those conventions, not anything peculiar to this article.
+
+### Article metadata, straight from the `<head>`
+
+```{r}
+meta <- html_article_meta(article)
+meta[c("title", "journal", "volume", "date", "doi", "pmid")]
+meta$authors
+```
+
+### Finding and reading a table
+
+Unlike a PDF, where a table has no machine-readable boundary and has
+to be found by its caption text, an HTML table is a real `<table>`
+element -- but it still needs to be found correctly: PMC wraps each
+table together with its caption in an enclosing `<section>`, and
+calling `rvest::html_table()` on *that* wrapper (rather than drilling
+down to the actual `<table>` inside it) silently produces a nonsense
+one-row pseudo-table instead of erroring. `html_table_index()` lists
+what's there; `html_read_table()` does the drill-down correctly:
+
+```{r}
+html_table_index(article)[c("id", "label")]
+```
+
+Table 2 reports the paper's own segmented-regression estimates, and
+its column names are the paper's abbreviations, not self-explanatory
+labels, so they're worth spelling out before the table appears rather
+than after:
+
+- **change point** -- the year, estimated from the data rather than
+  assumed, at which the trend in mortality significantly shifts.
+- **APC** (annual percentage change) -- the constant yearly rate of
+  change *within* one segment of the trend (e.g. before vs. after the
+  change point).
+- **AAPC** (average annual percentage change) -- a single summary rate
+  across the *whole* 1999-2023 period, averaging the early- and
+  late-period APCs in proportion to how many years each segment spans.
+
+```{r}
+tab2 <- html_read_table(article, "Tab2")
+dtab(tab2)
+```
+
+### Abstract and a cited figure
+
+```{r}
+ab <- html_abstract(article)
+names(ab)
+ab[["Background"]]
+```
+
+Figures are harder to extract "as text" than tables are, since the
+data they summarize was never in the HTML at all -- but the image
+itself is: PMC serves it from its own CDN, so `html_figure_image()`
+just needs the `<img>` element's `src`, not a download. `article` is
+licensed CC BY 4.0 (confirmed below, straight from the page's own
+licence statement), so it can be reproduced here with attribution
+rather than only described:
+
+```{r}
+fig1 <- html_figure_image(article, "Fig1")
+knitr::include_graphics(fig1$src)
+```
+
+```{r, results = "asis"}
+cap <- html_figure_caption(article, "Fig1")
+meta <- html_article_meta(article)
+cat(sprintf(
+  "**Fig. 1.** %s\n\n*Source:* %s. %s. *%s*. %s;%s:%s. [%s](https://doi.org/%s). Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).",
+  cap, paste(meta$authors, collapse = ", "), meta$title, meta$journal,
+  substr(meta$date, 1, 4), meta$volume, meta$firstpage, meta$doi, meta$doi
+))
+```
+
+Both the table- and figure-extraction functions above are generic in
+the same sense the PDF ones are: nothing about them is specific to
+stroke, diabetes, or this journal -- the same calls work on any PMC
+article that follows these id and meta-tag conventions.
+
+## Bibliographic integrity: a reference list PMC has already structured
+
+This paper cites by number -- `[1]`, `[1, 2]` -- against a 21-entry
+reference list. Unlike the RAND and CDC reports, where the reference
+list is plain PDF text that first has to be parsed back into
+structure, PMC's own HTML has already done that: each entry is a
+`<li id="CRN">` carrying a formatted citation plus direct links to its
+DOI and PubMed record, and every in-text citation marker is itself a
+real link, `<a href="#CRN">`, straight to its entry -- not text that
+merely looks like a citation. So `pmc_ref_entries()` and
+`pmc_find_citations()` are reads, not parsers:
+
+```{r}
+refs <- pmc_ref_entries(article)
+nrow(refs)
+refs[1:3, c("key", "text", "doi")]
+
+cites <- pmc_find_citations(article)
+nrow(cites)
+head(cites)
+```
+
+### Cross-checking the citations
+
+Because every in-text marker is already a structural link, checking
+that it resolves to a real entry is just a set-membership test -- no
+heuristic regex over plain text, the way
+[vancouver_find_numeric_citations()] has to work:
+
+```{r}
+stopifnot(all(cites$key %in% refs$key))
+```
+
+Each citation link gets its own anchor id, via the same
+[bib_cite_link()] used for the RAND and CDC vignettes, so it can link
+down to its entry and that entry can link back up to every place it
+was cited:
+
+```{r}
+cite_id <- paste0("cite-", cites$key, "-", seq_len(nrow(cites)))
+cites$link <- bib_cite_link(cites$key, label = cites$label, id = cite_id)
+cited_at <- split(cite_id, cites$key)
+dtab(cites[c("para", "key", "link")], escape = FALSE)
+```
+
+### The rendered bibliography
+
+`pmc_bibliography_html()` is a thin wrapper around the same
+[bib_html_list()] renderer the RAND and CDC vignettes use -- PMC's
+entries arrive already formatted with their own DOI and a PubMed
+fallback URL, so there's no formatting step first. Every entry links
+to its DOI on `doi.org`; the small `&uarr;` links back up to every
+place in the text it was actually cited:
+
+```{r, results = "asis"}
+cat(pmc_bibliography_html(refs, cited_at), sep = "\n")
+```
+
+```{r}
+table(has_doi = !is.na(refs$doi))
+```
+
+Most entries have a DOI linked directly in PMC's own HTML, but not
+all -- a handful (e.g. government data-brief and surveillance-report
+citations) have neither a DOI nor a PubMed record, and are correctly
+marked `no DOI` above rather than silently dropped, the same guarantee
+[bib_html_list()] makes for the RAND and CDC vignettes.

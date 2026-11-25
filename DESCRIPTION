@@ -1,23 +1,25 @@
 Package: bst260projhelp
-Title: Extract Tables and Verify Bibliographic Integrity from PDF Reports
-Version: 0.1.1
+Title: Extract Tables and Verify Bibliographic Integrity from PDF and HTML Reports
+Version: 0.1.3
 Authors@R: person("Vincent", "Carey", email = "stvjc@channing.harvard.edu", role = c("aut", "cre"))
-Description: Tools for two recurring tasks when working with long PDF reports
-    (such as government and NGO surveillance summaries): (1) recovering
-    tabular data from PDF pages via either simple line-based parsing or
-    coordinate-based word clustering, and (2) recovering a document's
+Description: Tools for two recurring tasks when working with long PDF
+    reports (such as government and NGO surveillance summaries) or
+    journal-article HTML: (1) recovering tabular data from PDF pages via
+    either simple line-based parsing or coordinate-based word clustering,
+    or from HTML tables via rvest; and (2) recovering a document's
     bibliography -- parsing its reference list, linking in-text citations
     to reference-list entries, and exporting the result as BibTeX or
     CSL-JSON for downstream citation-integrity checks. Includes worked
-    examples on a RAND report on gun policy research and a CDC waterborne
-    disease surveillance report.
+    examples on a RAND report on gun policy research, a CDC waterborne
+    disease surveillance report, and a PMC journal article.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: R (>= 4.1)
 Imports:
     pdftools,
-    jsonlite
+    jsonlite,
+    rvest
 Suggests:
     DT,
     httr2,
