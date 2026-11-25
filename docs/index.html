@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">bst260projhelp</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,7 +56,22 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="bst260projhelp">bst260projhelp<a class="anchor" aria-label="anchor" href="#bst260projhelp"></a>
 </h1></div>
-<p>Tools for two recurring tasks when working with long PDF reports or journal-article HTML:</p>
+<div class="section level2">
+<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+</h2>
+<p>The final projects for BST260 will consist of pkgdown sites addressing data science concerns with public datasets. Objectives include</p>
+<ul>
+<li>demonstrating understanding of how the R package and vignette concepts can be leveraged via <strong>pkgdown and GitHub pages</strong> to produce globally accessible web pages with your <strong>scientific goals and findings</strong>
+</li>
+<li>illustrating methods of <strong>information transformation</strong>, such as extracting tables and figures from web sites or publications and repurposing them for communication and data analysis</li>
+<li>consistently clarifying <strong>provenance of materials</strong> used in your project and future research, including efficient production of usable <strong>bibliographic references</strong>
+</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a>
+</h2>
+<p>This repository provides documentation, functions, and example public documents to help with recurring tasks that arise when working with PDF reports or journal-article HTML.</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>Table extraction</strong> – recovering structured tables from PDF pages, whether they’re laid out simply (one row per text line) or awkwardly (wrapped cells, centred columns, rotated pages), or from an HTML article’s own <code>&lt;table&gt;</code> elements.</li>
@@ -77,11 +92,12 @@
 <li>a CDC waterborne disease surveillance report (<code><a href="articles/waterborne-disease.html">vignette("waterborne-disease")</a></code>), with a numbered (Vancouver-style) bibliography;</li>
 <li>a PMC journal article on stroke mortality (<code><a href="articles/html-scraping.html">vignette("html-scraping")</a></code>), with its own pre-structured, numbered reference list.</li>
 </ul>
+</div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("devtools")</span></span>
+<code class="sourceCode R"><span><span class="co"># install.packages("devtools") </span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/install-deprecated.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"vjcitn/bst260projhelp"</span>, build_vignettes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

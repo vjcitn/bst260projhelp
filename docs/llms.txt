@@ -1,7 +1,25 @@
 # bst260projhelp
 
-Tools for two recurring tasks when working with long PDF reports or
-journal-article HTML:
+## Overview
+
+The final projects for BST260 will consist of pkgdown sites addressing
+data science concerns with public datasets. Objectives include
+
+- demonstrating understanding of how the R package and vignette concepts
+  can be leveraged via **pkgdown and GitHub pages** to produce globally
+  accessible web pages with your **scientific goals and findings**
+- illustrating methods of **information transformation**, such as
+  extracting tables and figures from web sites or publications and
+  repurposing them for communication and data analysis
+- consistently clarifying **provenance of materials** used in your
+  project and future research, including efficient production of usable
+  **bibliographic references**
+
+## Details
+
+This repository provides documentation, functions, and example public
+documents to help with recurring tasks that arise when working with PDF
+reports or journal-article HTML.
 
 1.  **Table extraction** – recovering structured tables from PDF pages,
     whether they’re laid out simply (one row per text line) or awkwardly
@@ -59,7 +77,7 @@ Three worked examples are bundled as package data and vignettes:
 
 ``` r
 
-# install.packages("devtools")
+# install.packages("devtools") 
 devtools::install_github("vjcitn/bst260projhelp", build_vignettes = TRUE)
 ```
 
