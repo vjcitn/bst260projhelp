@@ -15,6 +15,9 @@ data science concerns with public datasets. Objectives include
   project and future research, including efficient production of usable
   **bibliographic references**
 
+Note: This package and pkgdown site were created through prompting
+claude code with Sonnet 5, and revising results.
+
 ## Details
 
 This repository provides documentation, functions, and example public
