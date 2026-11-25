@@ -1,6 +1,6 @@
 Package: bst260projhelp
 Title: Extract Tables and Verify Bibliographic Integrity from PDF Reports
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: person("Vincent", "Carey", email = "stvjc@channing.harvard.edu", role = c("aut", "cre"))
 Description: Tools for two recurring tasks when working with long PDF reports
     (such as government and NGO surveillance summaries): (1) recovering
